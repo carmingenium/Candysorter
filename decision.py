@@ -33,7 +33,7 @@ cap = cv2.VideoCapture(0) # Open the camera (0 is default, should be tested and 
 
 
 # Rotation commands sent to Arduino
-def rotate_90():
+def rotate_90(): #deprecated
   global inputstate
   inputstate += 90
   if inputstate >= 360:
@@ -42,7 +42,7 @@ def rotate_90():
   # arduino.write(inputstate.encode())
   time.sleep(1)
   
-def rotate_bin(bin_num):
+def rotate_bin(bin_num): #deprecated
   global binstate
   binstate = float(bin_num * 51.42)
   arduino.write(f'{binstate}\n'.encode()) # NOT TESTED!
@@ -63,7 +63,7 @@ def get_color(): # NOT TESTED!
 
   if cv2.waitKey(1) & 0xFF == ord('q'):
     return "error"
-  return detected_labels[0] if detected_labels else "error"
+  return detected_labels[0] if detected_labels else "error" # burdaki logic değişecek, yanlış okumayla default çıkma olasılığı var o yüzden herhangi bir renk görünürse onu yollayacak şekilde düzeltilecek
 
 def color_to_bin(color): 
   return { # should be ordered in the order of the bins to set rotation logic
@@ -74,9 +74,18 @@ def color_to_bin(color):
     "brown": 5,
     "orange": 6
   }.get(color, 0)
+  
+  # ^^^^^^^^^^^^^^^ yerleştirilmesi lazım
+  # if(color==0)  // non m&m
+  #   if(color==1)   // red
+  #   if(color==2) // blue
+  #   if(color==3) // orange
+  #   if(color==4)   // yellow
+  #   if(color==5)   // brown
+  #   if(color==6)  // green
 
 
-time.sleep(3)  # Wait for first input to be ready
+time.sleep(5)  # Wait for first input to be ready
 rotate_90()  # Step 1: Input → Store
 time.sleep(1)  # Simulate time taken to get new input
 rotate_90()  # Step 2: Store → Camera
@@ -91,7 +100,7 @@ while True:
     print("Error reading color")
     continue
   
-  output_bin = color_to_bin(color)
+  output_bin = color_to_bin(color) # 0,1,2,3,4,5,6 yollanıyor ama arduinoda açısıyla çarpılmış halde. modeldeki açıların verisi olmadığı için hatalı
   # led indication(color)  # Simulate LED indication (not implemented here)
   
   rotate_bin(output_bin)
