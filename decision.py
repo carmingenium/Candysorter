@@ -41,7 +41,7 @@ def get_color(): # NOT TESTED!
   
   # all detected objects are on the list.
   for labels in detected_labels:
-    if labels[1] > 0.85:   # if there is any with confidence over 85%, return it.
+    if labels[1] > 0.80:   # if there is any with confidence over 80%, return it.
       return labels[0]
   return "default"  # else return default
  
