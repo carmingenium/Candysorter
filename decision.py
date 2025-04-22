@@ -10,89 +10,54 @@
 
 from ultralytics import YOLO
 import cv2
-import time
+import time # can be used later for timing the rotation of the machine
 import serial
 
 # Connect to Arduino (adjust the port and baudrate to match your setup)
 arduino = serial.Serial(port='/dev/ttyACM0', baudrate=9600, timeout=.1)
-# set bin state to 0 (default bin)
-inputstate = 0  # 0, 90, 180, 270 - should go between these values - should be tested to see which way it rotates
-binstate = 0  # 0 = default bin, 1 = red, 2 = yellow, 3 = blue, 4 = green, 5 = brown, 6 = orange
-# 0, 51.42, 102.84, 154.26, 205.68, 257.1, 308.52 - should go between these values - should be tested to see which way it rotates - 360/7 per unit - 51.42 degrees per bin
-# load model
 
+# load model and camera
 model = YOLO('model.pt')
 cap = cv2.VideoCapture(0) # Open the camera (0 is default, should be tested and changed!)
 
-
-
-
-
-
-
-
-
-# Rotation commands sent to Arduino
-def rotate_90(): #deprecated
-  global inputstate
-  inputstate += 90
-  if inputstate >= 360:
-    inputstate = 0
-  arduino.write(f'{inputstate}\n'.encode()) # NOT TESTED!
-  # arduino.write(inputstate.encode())
-  time.sleep(1)
+def send_data(data):
+  arduino.write(f'{data}\n'.encode()) # Send data to Arduino
   
-def rotate_bin(bin_num): #deprecated
-  global binstate
-  binstate = float(bin_num * 51.42)
-  arduino.write(f'{binstate}\n'.encode()) # NOT TESTED!
-  # arduino.write(binstate.encode()) 
-  time.sleep(1)
-    
 def get_color(): # NOT TESTED!
   ret, frame = cap.read()
   if not ret:
-    return "error"
+    return "error" # goes to default if loop continues
   results = model(frame)
   
   detected_labels = []
   for box in results[0].boxes:
     cls_id = int(box.cls[0])  # class index
     label = model.names[cls_id]
-    detected_labels.append(label)
+    confidence = float(box.conf[0])  # confidence score
+    detected_labels.append(label,confidence)
 
   if cv2.waitKey(1) & 0xFF == ord('q'):
-    return "error"
-  return detected_labels[0] if detected_labels else "error" # burdaki logic değişecek, yanlış okumayla default çıkma olasılığı var o yüzden herhangi bir renk görünürse onu yollayacak şekilde düzeltilecek
-
+    return "exit" # goes to default if loop continues
+  
+  # all detected objects are on the list.
+  for labels in detected_labels:
+    if labels[1] > 0.85:   # if there is any with confidence over 85%, return it.
+      return labels[0]
+  return "default"  # else return default
+ 
 def color_to_bin(color): 
-  return { # should be ordered in the order of the bins to set rotation logic
+  return {
     "red": 1,
-    "yellow": 2,
-    "blue": 3,
-    "green": 4,
+    "blue": 2,
+    "orange": 3,
+    "yellow": 4,
     "brown": 5,
-    "orange": 6
+    "green": 6
   }.get(color, 0)
   
-  # ^^^^^^^^^^^^^^^ yerleştirilmesi lazım
-  # if(color==0)  // non m&m
-  #   if(color==1)   // red
-  #   if(color==2) // blue
-  #   if(color==3) // orange
-  #   if(color==4)   // yellow
-  #   if(color==5)   // brown
-  #   if(color==6)  // green
-
-
-time.sleep(5)  # Wait for first input to be ready
-rotate_90()  # Step 1: Input → Store
-time.sleep(1)  # Simulate time taken to get new input
-rotate_90()  # Step 2: Store → Camera
-time.sleep(1)  # Simulate time taken to process input
-
-
 # Main loop to simulate operation
+# need to define a way to run color detection on the right time. !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# maybe we can use a timer a bit shorter than the waiting time of the motors at every slot to make sure it will send data once, but excess data may become a problem. 
 while True:
 
   color = get_color()
@@ -100,21 +65,9 @@ while True:
     print("Error reading color")
     continue
   
-  output_bin = color_to_bin(color) # 0,1,2,3,4,5,6 yollanıyor ama arduinoda açısıyla çarpılmış halde. modeldeki açıların verisi olmadığı için hatalı
-  # led indication(color)  # Simulate LED indication (not implemented here)
-  
-  rotate_bin(output_bin)
-  time.sleep(2) # Wait for bin rotation
-  
-  # Release time expectation
-  time.sleep(1)
-  
-  # After release, go back to default bin.
-  rotate_bin(0)
-  time.sleep(2)  # Wait for bin rotation
-  
-  
-  rotate_90() # Start next cycle
+  output_bin = color_to_bin(color)
+  # lcd indication(color)  # Simulate LCD indication (not implemented here)
+  send_data(output_bin)  # Send the color to Arduino
   
   # program stopping condition
   if cv2.waitKey(1) & 0xFF == ord('q'):
