@@ -56,8 +56,6 @@ def color_to_bin(color):
   }.get(color, 0)
   
 # Main loop to simulate operation
-# need to define a way to run color detection on the right time. !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# maybe we can use a timer a bit shorter than the waiting time of the motors at every slot to make sure it will send data once, but excess data may become a problem. 
 while True:
 
   color = get_color()
@@ -66,8 +64,7 @@ while True:
     continue
   
   output_bin = color_to_bin(color)
-  # lcd indication(color)  # Simulate LCD indication (not implemented here)
-  send_data(output_bin)  # Send the color to Arduino
+  send_data(output_bin)  # Send the color to Arduino LCD should be handled in the Arduino code also.
   
   # program stopping condition
   if cv2.waitKey(1) & 0xFF == ord('q'):
