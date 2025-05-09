@@ -18,12 +18,12 @@ arduino = serial.Serial(port='/dev/ttyACM0', baudrate=9600, timeout=.1)
 
 # load model and camera
 model = YOLO('model.pt')
-cap = cv2.VideoCapture(0) # Open the camera (0 is default, should be tested and changed!)
+cap = cv2.VideoCapture(1)
 
-def send_data(data):
+def transmitDetection(data):
   arduino.write(f'{data}\n'.encode()) # Send data to Arduino
   
-def get_color(): # NOT TESTED!
+def detectAndClassify():
   ret, frame = cap.read()
   if not ret:
     return "error" # goes to default if loop continues
@@ -58,13 +58,13 @@ def color_to_bin(color):
 # Main loop to simulate operation
 while True:
 
-  color = get_color()
+  color = detectAndClassify()
   if color == "error":
     print("Error reading color")
     continue
   
   output_bin = color_to_bin(color)
-  send_data(output_bin)  # Send the color to Arduino LCD should be handled in the Arduino code also.
+  transmitDetection(output_bin)  # Send the color to Arduino LCD should be handled in the Arduino code also.
   
   # program stopping condition
   if cv2.waitKey(1) & 0xFF == ord('q'):
